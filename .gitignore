@@ -1,0 +1,12 @@
+# Security & Credentials
+.env
+profiles.yml
+
+# Python Caches
+__pycache__/
+*.pyc
+
+# dbt artifacts
+target/
+dbt_packages/
+logs/
