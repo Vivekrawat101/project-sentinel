@@ -10,3 +10,14 @@ __pycache__/
 target/
 dbt_packages/
 logs/
+
+# Python virtual environments
+venv/
+sentinel_airflow/airflow_env/
+
+# Airflow runtime configurations, databases, and logs
+sentinel_airflow/*.cfg
+sentinel_airflow/*.db
+sentinel_airflow/*.json
+sentinel_airflow/*.pid
+sentinel_airflow/logs/
