@@ -1,5 +1,6 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator  # INJECTION 1: The Operator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from datetime import datetime, timedelta
 import json
@@ -136,11 +137,11 @@ default_args = {
 with DAG(
     'sentinel_shift_left_gateway',
     default_args=default_args,
-    description='Phase 2: Data Contract Gateway & Ingestion',
+    description='Phase 2 & 3: Gateway, Ingestion, and Circuit Breaker',
     schedule=timedelta(days=1),
     start_date=datetime(2026, 6, 13),
     catchup=False,
-    tags=['sentinel', 'ingestion'],
+    tags=['sentinel', 'ingestion', 'failsafe'],
 ) as dag:
 
     generate_payload_task = PythonOperator(
@@ -158,5 +159,22 @@ with DAG(
         python_callable=load_and_resolve_schema,
     )
 
-    # The Final Phase 2 Execution Graph
-    generate_payload_task >> validate_contract_task >> load_data_task
+    # ---------------------------------------------------------
+    # INJECTION 2: THE PHASE 3 CIRCUIT BREAKER EXECUTION
+    # ---------------------------------------------------------
+    
+    build_marts_baseline = BashOperator(
+        task_id='build_fct_daily_volume',
+        bash_command='cd /mnt/d/Project_Sentinel/sentinel_dbt && /mnt/d/Project_Sentinel/venv/Scripts/dbt.exe run --select fct_daily_volume',
+    )
+
+    execute_circuit_breaker = BashOperator(
+        task_id='execute_volume_failsafe',
+        bash_command='cd /mnt/d/Project_Sentinel/sentinel_dbt && /mnt/d/Project_Sentinel/venv/Scripts/dbt.exe test --select assert_volume_stability',
+        trigger_rule='all_success' 
+    )
+
+    # ---------------------------------------------------------
+    # INJECTION 3: THE PIPELINE CONTROL FLOW
+    # ---------------------------------------------------------
+    generate_payload_task >> validate_contract_task >> load_data_task >> build_marts_baseline >> execute_circuit_breaker
