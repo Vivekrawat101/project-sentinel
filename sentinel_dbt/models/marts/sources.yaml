@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw
+    database: ecommerce_platform
+    schema: raw
+    tables:
+      - name: daily_orders
+        description: "Raw simulated nested JSON payloads from the Phase 2 Airflow Gateway."

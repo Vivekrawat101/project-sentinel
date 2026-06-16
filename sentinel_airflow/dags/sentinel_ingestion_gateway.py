@@ -1,42 +1,50 @@
+import json
+import random # INJECTION: For dynamic values
+import uuid   # INJECTION: For unique IDs
+from datetime import datetime, timedelta
+from jsonschema import validate, ValidationError
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.operators.bash import BashOperator  # INJECTION 1: The Operator
+from airflow.operators.bash import BashOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from datetime import datetime, timedelta
-import json
-from jsonschema import validate, ValidationError
 
 RAW_DATA_PATH = '/tmp/sentinel_raw_payload.json'
 CONTRACT_PATH = '/mnt/d/Project_Sentinel/sentinel_airflow/contracts/ecommerce_contract.json'
 
 def generate_simulated_payload():
-    """Generates a nested JSON payload simulating an e-commerce order."""
+    """Generates a dynamic, randomized JSON payload simulating an e-commerce order."""
+    
+    # 1. Generate unique identifiers for this specific execution
+    dynamic_order_id = f"ORD-{random.randint(10000, 99999)}"
+    dynamic_customer_id = random.randint(1000, 9999)
+    dynamic_line_item_id = f"LI-{str(uuid.uuid4())[:8].upper()}"
+    
     payload = {
-        "event_id": "EVT-104992",
-        "order_id": "ORD-88210",
-        "customer_id": 8821,
-        "checkout_type": "registered",
-        "device_type": "iOS App",
-        "payment_gateway": "Stripe",
-        "acquisition_channel": "IG_Ad_Tech_Retargeting",
+        "event_id": f"EVT-{random.randint(100000, 999999)}",
+        "order_id": dynamic_order_id,
+        "customer_id": dynamic_customer_id,
+        "checkout_type": random.choice(["registered", "guest"]),
+        "device_type": random.choice(["iOS App", "Android App", "Web"]),
+        "payment_gateway": random.choice(["Stripe", "PayPal", "Razorpay"]),
+        "acquisition_channel": random.choice(["IG_Ad_Tech_Retargeting", "Organic_Search", "Direct"]),
         "shipping_address": {
             "city": "Dehradun",
             "state": "Uttarakhand",
             "country": "IN",
-            "pin_code": "248001"
+            "pin_code": "240010"
         },
         "line_items": [
             {
-                "line_item_id": "LI-9921A",
+                "line_item_id": dynamic_line_item_id,
                 "item_sku": "TECH-MAC-M5-PRO",
                 "category": "Electronics",
                 "brand": "Apple",
                 "supplier": "Foxconn_Shenzhen",
                 "unit_price": 245000.00,
-                "quantity": 1,
-                "fulfillment_center": "FC_Delhi_North",
-                "shipping_carrier": "BlueDart",
-                "item_status": "Shipped",
+                "quantity": random.randint(1, 3),
+                "fulfillment_center": random.choice(["FC_Delhi_North", "FC_Mumbai_West"]),
+                "shipping_carrier": random.choice(["BlueDart", "Delhivery"]),
+                "item_status": "Pending",  # Hardcoded to Pending so we can track state changes later
                 "promo_code_applied": None,
                 "return_reason": None
             }
@@ -46,7 +54,8 @@ def generate_simulated_payload():
 
     with open(RAW_DATA_PATH, 'w') as f:
         json.dump([payload], f, indent=4)
-    print(f"Payload generated at {RAW_DATA_PATH}")
+        
+    print(f"Dynamic Payload generated at {RAW_DATA_PATH} for Order: {dynamic_order_id}")
     return RAW_DATA_PATH
 
 def enforce_data_contract(ti):
