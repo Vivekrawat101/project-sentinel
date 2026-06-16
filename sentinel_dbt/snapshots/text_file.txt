@@ -1,0 +1,11 @@
+SELECT 
+    line_item_id,
+    item_status AS current_status,
+    LAG(item_status) OVER (PARTITION BY line_item_id ORDER BY dbt_valid_from ASC) AS previous_status,
+    shipping_carrier AS current_carrier,
+    LAG(shipping_carrier) OVER (PARTITION BY line_item_id ORDER BY dbt_valid_from ASC) AS previous_carrier,
+    
+    dbt_valid_from
+
+FROM snapshots.line_items_snapshot
+WHERE line_item_id = 'LI-6266EEEC';
